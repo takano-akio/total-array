@@ -8,69 +8,19 @@ module Data.TotalArray.Generic where
 import Prelude hiding ((!!), mapM, mapM_, (.))
 import qualified Prelude as P
 
+import Control.Monad (guard)
+import Control.Monad.Primitive
 import qualified Data.Vector.Generic as G
 import Data.Void
-import Data.Word
 import GHC.Exts (coerce)
 
-class Small a where
-  numValues :: p a -> Int
-  toIndex :: a -> Int
-  unsafeFromIndex :: Int -> a
-
-instance Small Void where
-  numValues _ = 0
-  toIndex _ = error "toIndex Void"
-  unsafeFromIndex _ = error "unsafeFromIndex Void"
-
-instance Small () where
-  numValues _ = 1
-  toIndex () = 0
-  unsafeFromIndex !_ = ()
-
-instance Small Bool where
-  numValues _ = 2
-  toIndex False = 0
-  toIndex True = 1
-  unsafeFromIndex n = n /= 0
-
-instance Small Word8 where
-  numValues _ = 256
-  toIndex = fromIntegral
-  unsafeFromIndex = fromIntegral
-
-instance Small Word16 where
-  numValues _ = 65536
-  toIndex = fromIntegral
-  unsafeFromIndex = fromIntegral
-
-instance (Small a, Small b) => Small (a, b) where
-  numValues _ = numValues ([] :: [a]) * numValues ([] :: [b])
-  toIndex (a, b) = toIndex a * numValues ([] :: [b]) + toIndex b
-  unsafeFromIndex n = (a, b)
-    where
-      !a = unsafeFromIndex x
-      !b = unsafeFromIndex y
-      !(x, y) = quotRem n (numValues ([] :: [b]))
-
-instance (Small a, Small b) => Small (Either a b) where
-  numValues _ = numValues ([] :: [a]) + numValues ([] :: [b])
-  toIndex (Left a) = toIndex a
-  toIndex (Right b) = numValues ([] :: [a]) + toIndex b
-  unsafeFromIndex i
-    | i < k = Left $! unsafeFromIndex i
-    | otherwise = Right $! unsafeFromIndex (i - k)
-    where
-      k = numValues ([] :: [a])
+import Data.Small
 
 newtype GArray vec k a = Array (vec a)
   deriving (Functor, Foldable, Traversable)
 
 --type Array = GArray V.Vector
 --type UArray = GArray U.Vector
-
-toVector :: GArray vec k a -> vec a
-toVector (Array v) = v
 
 -- not sure if these are useful:
 -- length, null
@@ -355,3 +305,149 @@ minimum (Array vec) = G.minimum vec
 minimumBy :: (G.Vector vec a) => (a -> a -> Ordering) -> GArray vec k a -> a
 minimumBy f (Array vec) = G.minimumBy f vec
 -}
+
+-- Monadic folds
+
+foldM
+  :: (G.Vector vec b, Monad m) => (a -> b -> m a) -> a -> GArray vec k b -> m a
+foldM f x (Array vec) = G.foldM f x vec
+
+ifoldM
+  :: (G.Vector vec b, Small k, Monad m)
+  => (a -> k -> b -> m a) -> a -> GArray vec k b -> m a
+ifoldM f x (Array vec) = G.ifoldM (\a k b -> f a (unsafeFromIndex k) b) x vec
+
+foldM'
+  :: (G.Vector vec b, Monad m) => (a -> b -> m a) -> a -> GArray vec k b -> m a
+foldM' f x (Array vec) = G.foldM' f x vec
+
+ifoldM'
+  :: (G.Vector vec b, Small k, Monad m)
+  => (a -> k -> b -> m a) -> a -> GArray vec k b -> m a
+ifoldM' f x (Array vec) = G.ifoldM' (\a k b -> f a (unsafeFromIndex k) b) x vec
+
+foldM_
+  :: (G.Vector vec b, Monad m) => (a -> b -> m a) -> a -> GArray vec k b -> m ()
+foldM_ f x (Array vec) = G.foldM_ f x vec
+
+ifoldM_
+  :: (G.Vector vec b, Small k, Monad m)
+  => (a -> k -> b -> m a) -> a -> GArray vec k b -> m ()
+ifoldM_ f x (Array vec) = G.ifoldM_ (\a k b -> f a (unsafeFromIndex k) b) x vec
+
+foldM'_
+  :: (G.Vector vec b, Monad m) => (a -> b -> m a) -> a -> GArray vec k b -> m ()
+foldM'_ f x (Array vec) = G.foldM'_ f x vec
+
+ifoldM'_
+  :: (G.Vector vec b, Small k, Monad m)
+  => (a -> k -> b -> m a) -> a -> GArray vec k b -> m ()
+ifoldM'_ f x (Array vec) = G.ifoldM'_ (\a k b -> f a (unsafeFromIndex k) b) x vec
+
+-- Monadic sequencing
+
+sequence
+    :: (G.Vector vec a, G.Vector vec (m a), Monad m)
+    => GArray vec k (m a) -> m (GArray vec k a)
+sequence (Array vec) = Array <$> G.sequence vec
+
+sequence_
+    :: (G.Vector vec a, G.Vector vec (m a), Monad m)
+    => GArray vec k (m a) -> m ()
+sequence_ (Array vec) = G.sequence_ vec
+
+-- Prefix sums (scans)
+
+prescanl
+    :: (G.Vector vec a, G.Vector vec b)
+    => (a -> b -> a) -> a -> GArray vec k b -> GArray vec k a
+prescanl f x (Array vec) = Array (G.prescanl f x vec)
+
+prescanl'
+    :: (G.Vector vec a, G.Vector vec b)
+    => (a -> b -> a) -> a -> GArray vec k b -> GArray vec k a
+prescanl' f x (Array vec) = Array (G.prescanl' f x vec)
+
+postscanl
+    :: (G.Vector vec a, G.Vector vec b)
+    => (a -> b -> a) -> a -> GArray vec k b -> GArray vec k a
+postscanl f x (Array vec) = Array (G.postscanl f x vec)
+
+postscanl'
+    :: (G.Vector vec a, G.Vector vec b)
+    => (a -> b -> a) -> a -> GArray vec k b -> GArray vec k a
+postscanl' f x (Array vec) = Array (G.postscanl' f x vec)
+
+prescanr
+    :: (G.Vector vec a, G.Vector vec b)
+    => (a -> b -> b) -> b -> GArray vec k a -> GArray vec k b
+prescanr f x (Array vec) = Array (G.prescanr f x vec)
+
+prescanr'
+    :: (G.Vector vec a, G.Vector vec b)
+    => (a -> b -> b) -> b -> GArray vec k a -> GArray vec k b
+prescanr' f x (Array vec) = Array (G.prescanr' f x vec)
+
+postscanr
+    :: (G.Vector vec a, G.Vector vec b)
+    => (a -> b -> b) -> b -> GArray vec k a -> GArray vec k b
+postscanr f x (Array vec) = Array (G.postscanr f x vec)
+
+postscanr'
+    :: (G.Vector vec a, G.Vector vec b)
+    => (a -> b -> b) -> b -> GArray vec k a -> GArray vec k b
+postscanr' f x (Array vec) = Array (G.postscanr' f x vec)
+
+-- Conversions
+
+-- Lists
+
+toList :: (G.Vector vec a) => GArray vec k a -> [a]
+toList (Array vec) = G.toList vec
+
+fromList
+  :: forall vec a k. (G.Vector vec a, Small k) => [a] -> Maybe (GArray vec k a)
+fromList list = fromVector $ G.fromListN (1 + numValues ([] :: [k])) list
+
+-- Vectors
+
+toVector :: GArray vec k a -> vec a
+toVector (Array vec) = vec
+
+fromVector
+  :: forall vec a k. (G.Vector vec a, Small k)
+  => vec a -> Maybe (GArray vec k a)
+fromVector vec = Array vec <$ guard (G.length vec == numValues ([] :: [k]))
+
+-- Different vector types
+
+convert
+  :: (G.Vector vec a, G.Vector vec1 a) => GArray vec k a -> GArray vec1 k a
+convert (Array vec) = Array $ G.convert vec
+
+-- Mutable total arrays
+
+freeze
+  :: (G.Vector vec a, PrimMonad m)
+  => GArray (G.Mutable vec (PrimState m)) k a -> m (GArray vec k a)
+freeze (Array vec) = Array <$> G.freeze vec
+
+thaw
+  :: (G.Vector vec a, PrimMonad m)
+  => GArray vec k a -> m (GArray (G.Mutable vec (PrimState m)) k a)
+thaw (Array vec) = Array <$> G.thaw vec
+
+copy
+  :: (G.Vector vec a, PrimMonad m)
+  => GArray (G.Mutable vec (PrimState m)) k a -> GArray vec k a -> m ()
+copy (Array mvec) (Array vec) = G.copy mvec vec
+
+unsafeFreeze
+  :: (G.Vector vec a, PrimMonad m)
+  => GArray (G.Mutable vec (PrimState m)) k a -> m (GArray vec k a)
+unsafeFreeze (Array vec) = Array <$> G.unsafeFreeze vec
+
+unsafeThaw
+  :: (G.Vector vec a, PrimMonad m)
+  => GArray vec k a -> m (GArray (G.Mutable vec (PrimState m)) k a)
+unsafeThaw (Array vec) = Array <$> G.unsafeThaw vec

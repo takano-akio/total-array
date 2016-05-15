@@ -36,10 +36,14 @@ build-type:          Simple
 -- extra-source-files:  
 cabal-version:       >=1.10
 
+source-repository head
+  type:                git
+  location:            https://github.com/takano-akio/total-array.git
+
 library
-  exposed-modules:     Data.TotalArray.Generic
+  exposed-modules:     Data.Small, Data.TotalArray.Generic
   -- other-modules:       
   -- other-extensions:    
-  build-depends:       base >=4.8 && <4.9, vector
+  build-depends:       base >=4.8 && <4.9, vector, primitive, safeint
   -- hs-source-dirs:      
   default-language:    Haskell2010
