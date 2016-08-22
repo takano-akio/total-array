@@ -312,37 +312,40 @@ foldM
   :: (G.Vector vec b, Monad m) => (a -> b -> m a) -> a -> GArray vec k b -> m a
 foldM f x (Array vec) = G.foldM f x vec
 
+{- not in old vector
 ifoldM
   :: (G.Vector vec b, Small k, Monad m)
   => (a -> k -> b -> m a) -> a -> GArray vec k b -> m a
 ifoldM f x (Array vec) = G.ifoldM (\a k b -> f a (unsafeFromIndex k) b) x vec
-
-foldM'
-  :: (G.Vector vec b, Monad m) => (a -> b -> m a) -> a -> GArray vec k b -> m a
-foldM' f x (Array vec) = G.foldM' f x vec
 
 ifoldM'
   :: (G.Vector vec b, Small k, Monad m)
   => (a -> k -> b -> m a) -> a -> GArray vec k b -> m a
 ifoldM' f x (Array vec) = G.ifoldM' (\a k b -> f a (unsafeFromIndex k) b) x vec
 
-foldM_
-  :: (G.Vector vec b, Monad m) => (a -> b -> m a) -> a -> GArray vec k b -> m ()
-foldM_ f x (Array vec) = G.foldM_ f x vec
-
 ifoldM_
   :: (G.Vector vec b, Small k, Monad m)
   => (a -> k -> b -> m a) -> a -> GArray vec k b -> m ()
 ifoldM_ f x (Array vec) = G.ifoldM_ (\a k b -> f a (unsafeFromIndex k) b) x vec
 
-foldM'_
-  :: (G.Vector vec b, Monad m) => (a -> b -> m a) -> a -> GArray vec k b -> m ()
-foldM'_ f x (Array vec) = G.foldM'_ f x vec
-
 ifoldM'_
   :: (G.Vector vec b, Small k, Monad m)
   => (a -> k -> b -> m a) -> a -> GArray vec k b -> m ()
 ifoldM'_ f x (Array vec) = G.ifoldM'_ (\a k b -> f a (unsafeFromIndex k) b) x vec
+
+-}
+
+foldM'
+  :: (G.Vector vec b, Monad m) => (a -> b -> m a) -> a -> GArray vec k b -> m a
+foldM' f x (Array vec) = G.foldM' f x vec
+
+foldM_
+  :: (G.Vector vec b, Monad m) => (a -> b -> m a) -> a -> GArray vec k b -> m ()
+foldM_ f x (Array vec) = G.foldM_ f x vec
+
+foldM'_
+  :: (G.Vector vec b, Monad m) => (a -> b -> m a) -> a -> GArray vec k b -> m ()
+foldM'_ f x (Array vec) = G.foldM'_ f x vec
 
 -- Monadic sequencing
 
@@ -418,6 +421,9 @@ fromVector
   :: forall vec a k. (G.Vector vec a, Small k)
   => vec a -> Maybe (GArray vec k a)
 fromVector vec = Array vec <$ guard (G.length vec == numValues ([] :: [k]))
+
+unsafeFromVector :: vec a -> GArray vec k a
+unsafeFromVector = Array
 
 -- Different vector types
 

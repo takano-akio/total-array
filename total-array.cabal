@@ -3,28 +3,28 @@
 
 name:                total-array
 version:             0.0.0.0
-synopsis:            Arrays that have a value for each possible key
+synopsis:            Total arrays, or arrays that have a value for each possible key
 description:         This package provides /total/ array types, that is, arrays
                      that have a value for the entire range of the key type.
                      This allows you to perform indexing without doing bounds
                      checking, giving benefits in terms of both correctness and
                      speed.
-
-                     While totality may seem restrictive, this package has two
-                     kinds of nice usage:
+                     .
+                     Totality may seem restrictive at first, but this package
+                     has two kinds of nice usage:
                      .
                      * Use with a fixed, small key type, such as Bool or Word8.
                         Then it can be used as a replacement for standard arrays
                         or vectors, just safer and faster.
                      * Use @Fin@ to construct a key type. This allows you to
                         create and use arrays whose length is only known at
-                        runtime, while benefiting from compile-time guarantees
+                        runtime, still taking advantage of compile-time guarantees
                         about validity of keys. This is useful when you have
                         many arrays of the same size, or you re-use the same key
-                        over and over to index into arrays.
+                        many times to index into arrays.
                      .
-                     This package uses the vector package as a backend, and has
-                     emphasis on efficiency.
+                     This package uses the vector package as a backend, and is
+                     designed with emphasis on efficiency.
 homepage:            https://github.com/takano-akio/total-array
 license:             PublicDomain
 license-file:        LICENSE
@@ -41,9 +41,9 @@ source-repository head
   location:            https://github.com/takano-akio/total-array.git
 
 library
-  exposed-modules:     Data.Small, Data.TotalArray.Generic
-  -- other-modules:       
+  exposed-modules:     Data.Small, Data.TotalArray.Generic, Data.Fin
+  other-modules:       Data.MySafeInt, Data.Small.Internal
   -- other-extensions:    
-  build-depends:       base >=4.8 && <4.9, vector, primitive, safeint
+  build-depends:       base >=4.8 && <4.10, vector, primitive, tagged
   -- hs-source-dirs:      
   default-language:    Haskell2010
