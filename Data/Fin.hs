@@ -8,6 +8,7 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE NoStarIsType #-}
 
 -- | Small finite types.
 module Data.Fin
