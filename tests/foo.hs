@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE DerivingVia #-}
 module Foo where
 
 import Data.Small
@@ -35,6 +36,17 @@ instance SmallIso MyType2 (GenericSmall MyType2) where
 
 baz :: MyType2 -> Int
 baz x = toIndex x
+
+data MyType3 = G Bool | H
+  deriving (Generic)
+  deriving Small via (GenericSmall MyType3)
+
+newtype MyType4 = I Word8
+  deriving Small via (IsoSmall MyType4)
+
+instance SmallIso MyType4 Word8 where
+  toIso (I x) = x + 44
+  fromIso x = I $ x - 44
 
 {-
 mold :: SafeInt

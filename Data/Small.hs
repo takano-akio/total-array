@@ -8,6 +8,7 @@ module Data.Small
   , fromIndex'
   , unsafeFromIndex
   , GenericSmall(..)
+  , IsoSmall(..)
   ) where
 
 import Data.Small.Internal

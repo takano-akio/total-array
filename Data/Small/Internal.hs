@@ -18,6 +18,7 @@ module Data.Small.Internal
   , fromIndex'
   , unsafeFromIndex
   , GenericSmall(..)
+  , IsoSmall(..)
   ) where
 
 import Data.Char
@@ -31,19 +32,23 @@ import GHC.Exts (chr#, Int(..), Char(..))
 import GHC.Generics
 
 -- | A class of types which are small enough that their values can be
--- reaslistically enumerated in memory.
+-- reaslistically enumerated in memory. It defines a mapping between the set of
+-- all values of type @a@ and the set of small natural numbers less than N for
+-- some N.
 --
 -- An ill-bahaved instance can defeat type safety of this package. For this
 -- reason, the methods of this class are not publicly exported. The only way
 -- for an user to create an instance for this class is to reduce it to another
--- existing instance. To do so, make your type an instance of the 'SmallIso'
--- class, then create an empty instance declaration for 'Small'.
+-- existing instance. @DerivingVia@ is the recommended way of doing this. There
+-- are two newtype wrappers that can be useful with @DerivingVia@:
+-- `GenericSmall` and `IsoSmall`.
 --
 -- A @Small a@ instance implicitly defines an ordering on @a@, observable
 -- as @('compare' \``on`` 'toIndex')@. When @a@ is
 -- also an @Ord@, it is recommended to make the both orders the same, to avoid
--- surprise. This can be achieved by defining 'toIso' and 'fromIso' to be
--- order-preserving functions.
+-- surprise. When using generic deriving, this can be achieved by also deriving
+-- Ord. When defining an instance via `SmallIso`, make sure that 'toIso' and
+-- 'fromIso' are order-preserving functions.
 class Small a where
   numValues_ :: Proxy a -> SafeInt
   toIndex_ :: a -> Int
@@ -91,7 +96,35 @@ class (Small b) => SmallIso a b | a -> b where
   fromIso :: b -> a
 
 -- | A newtype wrapper around @a@, providing a 'Small' instance based on the
+-- 'SmallIso instance of @a@.
+--
+-- You can use this wrapper to derive a `Small` instance with the @DerivingVia@
+-- language extension:
+--
+-- @
+--   data MyType = ...
+--     deriving Small via (IsoSmall MyType)
+--
+--   instance SmallIso MyType SomeOtherType where ...
+-- @
+newtype IsoSmall a = IsoSmall { fromIsoSmall :: a }
+
+instance (SmallIso a b) => Small (IsoSmall a) where
+  numValues_ _ = defaultNumValues (Proxy :: Proxy a)
+  toIndex_ = toIndex_ . toIso . fromIsoSmall
+  unsafeFromIndex_ = IsoSmall . fromIso . unsafeFromIndex_
+
+-- | A newtype wrapper around @a@, providing a 'Small' instance based on the
 -- 'Generic' instance of @a@.
+--
+-- You can use this wrapper to derive a `Small` instance with the @DerivingVia@
+-- language extension:
+--
+-- @
+--   data MyType = ...
+--     deriving Generic
+--     deriving Small via (GenericSmall MyType)
+-- @
 newtype GenericSmall a = GenericSmall { fromGenericSmall :: a }
 
 instance (Generic a, GSmall (Rep a)) => Small (GenericSmall a) where
