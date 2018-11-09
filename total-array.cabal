@@ -2,7 +2,7 @@
 -- documentation, see http://haskell.org/cabal/users-guide/
 
 name:                total-array
-version:             0.0.0.0
+version:             0.1.0.0
 synopsis:            Total arrays, or arrays that have a value for each possible key
 description:         This package provides /total/ array types, that is, arrays
                      that have a value for the entire range of the key type.
